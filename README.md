@@ -102,3 +102,11 @@ def process_from_this_dir():
 # and then pass at each call the next file to the other decorators.
 process_from_this_dir()
 ```
+
+## Install
+
+To install the package, from the root directory of the repository, run the following:
+
+`python3 setup.py install --user`
+
+This will also install nltk 3.4.5

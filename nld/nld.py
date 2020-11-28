@@ -34,7 +34,7 @@ class NLD(object):
         self.store_all_process_times = store_all_process_times
         self.all_process_times = []
         self.chain = dict()
-        self.iterable = {}
+        self.iterable = dict()
         self.id = None
         self.ids = []
 
@@ -68,25 +68,30 @@ class NLD(object):
             self.chain[self.id] = ""
             self.ids.append(self.id)
 
-    def freq_dist(self, func):
+
+    def freq_dist(self, number=5):
         """
         Returns a NLTK FreqDist from a given list.
-        :param func:
+        :param number: Number of top most frequent items
         """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
-
         @nldmethod
-        def freq_dist_wrapper(_input=None):
-            result = func(_input) if _input else func()
-            if isinstance(result, list):
-                if self.logger:
-                    self.logger.debug("Getting frequencies...")
-                return FreqDist(result).most_common(5)
-            else:
-                raise TypeError("The input to freq_dist must be of type list")
-        return freq_dist_wrapper
+        def freq_dist_decorator(func):
+            self._check_id(func)
+            self.chain[self.id] += func.__name__ + "-"
+            wraps(func)
+
+            @nldmethod
+            def freq_dist_wrapper(_input=None):
+                result = func(_input) if _input else func()
+                if isinstance(result, list):
+                    if self.logger:
+                        self.logger.debug("Getting frequencies...")
+                    return FreqDist(result).most_common(number)
+                else:
+                    raise TypeError("The input to freq_dist must be of type list")
+            return freq_dist_wrapper
+
+        return freq_dist_decorator
 
     def named_entity(self, func):
         """
@@ -347,7 +352,8 @@ class NLD(object):
             result = func(_input) if _input else func()
             timing = time() - t0
             self.process_time = timing
-            self.logger.info("Preprocessing took %.2f seconds", timing)
+            if self.logger:
+                self.logger.info("Preprocessing took %.2f seconds", timing)
             if self.store_all_process_times:
                 self.all_process_times.append((func.__name__, self.process_time))
             return result
@@ -402,3 +408,19 @@ class NLD(object):
             except:
                 raise
         return open_from_path_wrapper
+
+    def blank(self, func):
+        """
+        A blank decorator if you want to have also the last meaningful decorator in `self.chain`.
+        :param func: a function
+        :return:
+        """
+        self._check_id(func)
+        wraps(func)
+        self.chain[self.id] += func.__name__ + "-"
+
+        @nldmethod
+        def blank_wrapper(_input=None):
+            result = func(_input) if _input else func()
+            return result
+        return blank_wrapper
