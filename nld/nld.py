@@ -30,7 +30,10 @@ class NLD(object):
         else:
             self.logger = None
         self.process_time = None
-        self.stopwords = list(set(stopwords.words('english'))) + ["”", '--', '“']
+        try:
+            self.stopwords = list(set(stopwords.words('english'))) + ["”", '--', '“']
+        except LookupError:
+            raise LookupError("You miss the stopwords module from NLTK, which is required for NLD. Execute nltk.download('stopwords') to download it")
         self.store_all_process_times = store_all_process_times
         self.all_process_times = []
         self.chain = dict()
@@ -333,6 +336,10 @@ class NLD(object):
             result = func(_input) if _input else func()
             if not isinstance(result, str):
                 raise TypeError("Decorator word_tokenizer only accepts string output, output received is %s" % type(result))
+            try:
+                result = word_tokenize(result)
+            except LookupError:
+                raise LookupError("You miss the stopwords module from NLTK, which is required for NLD. Execute nltk.download('punkt') to download it.")
             return word_tokenize(result)
         return word_tokenizer_wrapper
 
@@ -385,7 +392,7 @@ class NLD(object):
 
     def open_from_path(self, func):
         """
-
+        Opens a single file or all the files in a given directory.
         :param func:
         :return:
         """
