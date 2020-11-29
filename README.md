@@ -106,7 +106,7 @@ sents = [
 nldecorator = nld.NLD(logger=True, store_all_process_times=True)
 
 @nldecorator.pos_tagger
-@nldecorator.iterator
+@nldecorator.iterator()
 def return_string(sents):
     return sents
 
@@ -131,7 +131,7 @@ nldecorator = nld.NLD(logger=True, store_all_process_times=True)
 @nldecorator.timeit
 @nldecorator.lower
 @nldecorator.word_tokenizer
-@nldecorator.iterator
+@nldecorator.iterator()
 @nldecorator.open_from_path
 def return_directory():
     # there are three files of the same book in this directory.
@@ -156,7 +156,7 @@ print(nldecorator.all_process_times)
 ```python
 @nldecorator.build_df(column="tags")
 @nldecorator.pos_tagger
-@nldecorator.iterator
+@nldecorator.iterator()
 def preprocess_tags(sents):
     return sents
 
@@ -165,7 +165,7 @@ def preprocess_tags(sents):
 @nldecorator.remove_stopwords()
 @nldecorator.word_tokenizer
 @nldecorator.lower
-@nldecorator.iterator
+@nldecorator.iterator()
 def preprocess_tokens_iter(sents):
     return sents
 

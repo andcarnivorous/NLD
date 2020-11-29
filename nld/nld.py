@@ -406,31 +406,34 @@ class NLD(object):
             return result
         return timeit_wrapper
 
-    def iterator(self, func):
+    def iterator(self, track_number=None):
         """
         Sets the iterable attribute if it was not set an returns the next item from it.
         This can be used to pass a list of sentences / texts to the next decorator for example.
         :param func: a function
         :return:
         """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
+        def iterator_decorator(func):
+            self._check_id(func)
+            wraps(func)
+            self.chain[self.id] += func.__name__ + "-"
 
-        @nldmethod
-        def iterator_wrapper(_input=None):
-            result = func(_input) if _input else func()
-            if not isinstance(result, list):
-                raise TypeError("Decorator iterator_wrapper only accepts list output, output received is %s" % type(result))
-            if not self.iterable or func.__name__ not in self.iterable:
-                self.iterable[func.__name__] = (item for item in result)
-            try:
-                if self.logger:
-                    self.logger.info("iterable: %s", self.iterable[func.__name__])
-                return next(self.iterable[func.__name__])
-            except StopIteration:
-                raise StopIteration("There are no more iterables")
-        return iterator_wrapper
+            @nldmethod
+            def iterator_wrapper(_input=None):
+                result = func(_input) if _input else func()
+                if not isinstance(result, list):
+                    raise TypeError("Decorator iterator_wrapper only accepts list output, output received is %s" % type(result))
+                key_name = func.__name__ + str(track_number) if track_number else func.__name__
+                if not self.iterable or key_name not in self.iterable:
+                    self.iterable[key_name] = (item for item in result)
+                try:
+                    if self.logger:
+                        self.logger.info("iterable: %s", self.iterable[key_name])
+                    return next(self.iterable[key_name])
+                except StopIteration:
+                    raise StopIteration("There are no more iterables")
+            return iterator_wrapper
+        return iterator_decorator
 
     def open_from_path(self, func):
         """
