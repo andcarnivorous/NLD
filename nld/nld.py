@@ -3,6 +3,7 @@ import string
 import uuid
 from functools import wraps
 from time import time
+import pandas as pd
 
 from nltk import FreqDist
 from nltk import ngrams, pos_tag, ne_chunk
@@ -35,20 +36,52 @@ class NLD(object):
         except LookupError:
             raise LookupError("You miss the stopwords module from NLTK, which is required for NLD. Execute nltk.download('stopwords') to download it")
         self.store_all_process_times = store_all_process_times
-        self.all_process_times = []
+        self.all_process_times = dict()
         self.chain = dict()
         self.iterable = dict()
         self.id = None
         self.ids = []
+        self.no_input = False
+        self.df = None
 
-    def set_debugger_level(self, level):
+    def build_df(self, column):
         """
-        Sets the debugger, if active, on the given level
-        :param level: string of the level to set the debugger, can be: info, warning, error
+        Returns a NLTK FreqDist from a given list.
+        :param number: Number of top most frequent items
+        """
+        @nldmethod
+        def build_df_decorator(func):
+            self._check_id(func)
+            self.chain[self.id] += func.__name__ + "-"
+            wraps(func)
+
+            @nldmethod
+            def build_df_wrapper(_input=None):
+                if isinstance(self.df, type(None)):
+                    self.df = pd.DataFrame()
+                if column not in self.df.columns:
+                    self.df[column] = None
+                    if self.logger: self.logger.info("Created column: %s", column)
+                result = func(_input) if _input else func()
+                self.df.loc[self.df[column].count(), column] = result
+                return result
+            return build_df_wrapper
+        return build_df_decorator
+
+
+    def add_stopwords(self, new_stopwords):
+        if isinstance(new_stopwords, str):
+            new_stopwords = [new_stopwords]
+        self.stopwords += new_stopwords
+
+    def set_logger_level(self, level):
+        """
+        Sets the logger, if active, on the given level
+        :param level: string of the level to set the logger, can be: info, warning, error
         :return:
         """
         if not self.logger:
-            raise AttributeError("Logger not set, please set the logger attribute to True before setting the debugger level")
+            raise AttributeError("Logger not set, please set the logger attribute to True before setting the logger level")
         level = level.lower()
         levels = {"debug": logging.DEBUG, "info": logging.INFO, "warning": logging.WARNING, "error": logging.ERROR}
         if level in levels:
@@ -132,6 +165,8 @@ class NLD(object):
                     self.logger.info("Input to pos tagger is of type string.")
                 return list(pos_tag(result.split()))
             elif isinstance(result, list):
+                if self.logger:
+                    self.logger.info("Input to pos tagger is of type list.")
                 return list(pos_tag(result))
             else:
                 raise TypeError("pos_tagger decorator only accepts string or list output, output received is %s" % type(result))
@@ -338,6 +373,7 @@ class NLD(object):
                 raise TypeError("Decorator word_tokenizer only accepts string output, output received is %s" % type(result))
             try:
                 result = word_tokenize(result)
+                return result
             except LookupError:
                 raise LookupError("You miss the stopwords module from NLTK, which is required for NLD. Execute nltk.download('punkt') to download it.")
             return word_tokenize(result)
@@ -355,6 +391,10 @@ class NLD(object):
 
         @nldmethod
         def timeit_wrapper(_input=None):
+            def run_time_version(name):
+                version = [x for x in self.all_process_times if name in x]
+                verion = len(version) + 1
+                return version
             t0 = time()
             result = func(_input) if _input else func()
             timing = time() - t0
@@ -362,7 +402,7 @@ class NLD(object):
             if self.logger:
                 self.logger.info("Preprocessing took %.2f seconds", timing)
             if self.store_all_process_times:
-                self.all_process_times.append((func.__name__, self.process_time))
+                self.all_process_times[func.__name__] = self.process_time
             return result
         return timeit_wrapper
 
@@ -385,6 +425,8 @@ class NLD(object):
             if not self.iterable or func.__name__ not in self.iterable:
                 self.iterable[func.__name__] = (item for item in result)
             try:
+                if self.logger:
+                    self.logger.info("iterable: %s", self.iterable[func.__name__])
                 return next(self.iterable[func.__name__])
             except StopIteration:
                 raise StopIteration("There are no more iterables")

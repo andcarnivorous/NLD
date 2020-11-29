@@ -151,6 +151,44 @@ print(nldecorator.all_process_times)
 [('lower_wrapper', 1.363213062286377), ('lower_wrapper', 1.3505115509033203), ('lower_wrapper', 1.2218332290649414)]
 ```
 
+### Build Dataframes
+
+```python
+@nldecorator.build_df(column="tags")
+@nldecorator.pos_tagger
+@nldecorator.iterator
+def preprocess_tags(sents):
+    return sents
+
+@nldecorator.build_df("tokens")
+@nldecorator.stem
+@nldecorator.remove_stopwords()
+@nldecorator.word_tokenizer
+@nldecorator.lower
+@nldecorator.iterator
+def preprocess_tokens_iter(sents):
+    return sents
+
+
+sents = ["This one is my awesome string, written by myself personally.", 
+         "This two is my awesome string, written by myself personally 2.",
+         "This three is my awesome string, written by myself personally 3."]
+
+for i in range(3):
+    preprocess_tokens_iter(sents)
+    preprocess_tags(sents)
+
+nldecorator.df
+```
+
+
+| 	| tokens | 	tags |
+| --- | ------ | ----- |
+| 0 	| [one, awesom, string, ,, written, person, .] |    [(This, DT), (one, CD), (is, VBZ), (my, PRP$),... |
+| 1 	| [two, awesom, string, ,, written, person, 2, .] | [(This, DT), (two, CD), (is, VBZ), (my, PRP$),... |
+| 2 	| [three, awesom, string, ,, written, person, 3, .] |   [(This, DT), (three, CD), (is, VBZ), (my, PRP$... |
+
+
 ## Install
 
 To install the package, from the root directory of the repository, run the following:
