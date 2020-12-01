@@ -41,33 +41,6 @@ Run ID:  2d1c614f-e5ba-41d3-aea7-ffab8e5e7a7b
 Decorators used: tokenize-lower_wrapper-sub_wrapper-rm_stopwords_wrapper-stem_wrapper-freq_dist_wrapper-
 ```
 
-```python
-# Here we add a blank decorator to store the last meaningful decorator (timeit) in the chain attribute.
-@nldecorator.blank
-@nldecorator.timeit
-@nldecorator.freq_dist()
-@nldecorator.stem
-@nldecorator.remove_stopwords(True)
-@nldecorator.substitute([("emma", "peppa")])
-@nldecorator.lower
-def tokenize(_input):
-    return word_tokenize(_input)
-
-second_result = tokenize(raw_text)
-print("2\n", second_result, "\n")
-print("PROCESS TIME:", nldecorator.process_time)
-print("Run ID: ", nldecorator.id)
-print("Decorators used:", nldecorator.chain[nldecorator.id])
-```
-
-```
-2
- [('mr.', 1080), ('peppa', 860), ('could', 834), ("'s", 831), ('would', 815)] 
-
-PROCESS TIME: 2.8660988807678223
-Run ID:  ca03e6d1-dc23-429f-af7d-c90de41458c3
-Decorators used: tokenize-lower_wrapper-sub_wrapper-rm_stopwords_wrapper-stem_wrapper-freq_dist_wrapper-timeit_wrapper-
-```
 
 ```python
 # Wrong Order, stopwords with capitals still present
@@ -94,31 +67,6 @@ print("Decorators used:", nldecorator.chain[nldecorator.id])
 PROCESS TIME: 2.7864768505096436
 Run ID:  6f42acfa-0407-4ddd-8f91-40309db5f08b
 Decorators used: tokenize-rm_stopwords_wrapper-lower_wrapper-stem_wrapper-ngrams_wrapper-
-```
-
-```python
-# You can also use the iterator decorator to yield input from a list
-sents = [
-    "This one is my awesome string, written by myself personally.",
-    "This two is my awesome string, written by myself personally 2.",
-    "This three is my awesome string, written by myself personally 3."]
-
-nldecorator = nld.NLD(logger=True, store_all_process_times=True)
-
-@nldecorator.pos_tagger
-@nldecorator.iterator()
-def return_string(sents):
-    return sents
-
-print(return_string(sents))
-print(return_string(sents))
-print(return_string(sents))
-```
-
-```
-[('This', 'DT'), ('one', 'CD'), ('is', 'VBZ'), ('my', 'PRP$'), ('awesome', 'JJ'), ('string,', 'NN'), ('written', 'VBN'), ('by', 'IN'), ('myself', 'PRP'), ('personally.', 'NN')]
-[('This', 'DT'), ('two', 'CD'), ('is', 'VBZ'), ('my', 'PRP$'), ('awesome', 'JJ'), ('string,', 'NN'), ('written', 'VBN'), ('by', 'IN'), ('myself', 'PRP'), ('personally', 'RB'), ('2.', 'CD')]
-[('This', 'DT'), ('three', 'CD'), ('is', 'VBZ'), ('my', 'PRP$'), ('awesome', 'JJ'), ('string,', 'NN'), ('written', 'VBN'), ('by', 'IN'), ('myself', 'PRP'), ('personally', 'RB'), ('3.', 'CD')]
 ```
 
 The following is an example using the `itarator` decorator and then the `open_from_path` decorator  

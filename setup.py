@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/andcarnivorous/nld",
     packages=setuptools.find_packages(),
-    install_requires=["nltk==3.4.5"],
+    install_requires=["nltk==3.4.5", "pandas>=0.25.3"],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

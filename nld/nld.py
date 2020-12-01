@@ -14,13 +14,15 @@ from nltk.tokenize import word_tokenize
 
 from .utils import *
 
+LANGUAGES = stopwords.fileids()
+
 
 class NLD(object):
     """
     The NLD object contains the NLD decorators. The `stopwords`, `store_all_process_times`, `iterables` and `logger` attributes are
     used in the decorators. The other attributes are used to keep track of each run and the decorators used.
     """
-    def __init__(self, logger=None, store_all_process_times=False):
+    def __init__(self, logger=None, store_all_process_times=False, language="english"):
         self.__name__ = "CompLing"
         if logger:
             logging.basicConfig(
@@ -31,8 +33,9 @@ class NLD(object):
         else:
             self.logger = None
         self.process_time = None
+        self.language = language
         try:
-            self.stopwords = list(set(stopwords.words('english'))) + ["”", '--', '“']
+            self.stopwords = list(set(stopwords.words(self.language))) + ["”", '--', '“']
         except LookupError:
             raise LookupError("You miss the stopwords module from NLTK, which is required for NLD. Execute nltk.download('stopwords') to download it")
         self.store_all_process_times = store_all_process_times
@@ -44,7 +47,7 @@ class NLD(object):
         self.no_input = False
         self.df = None
 
-    def build_df(self, column):
+    def build_df(self, column, category=None):
         """
         Returns a NLTK FreqDist from a given list.
         :param number: Number of top most frequent items
@@ -61,15 +64,20 @@ class NLD(object):
                     self.df = pd.DataFrame()
                 if column not in self.df.columns:
                     self.df[column] = None
+                    if category is not None and "class" not in self.df.columns:
+                        self.df["class"] = None
                     if self.logger: self.logger.info("Created column: %s", column)
                 result = func(_input) if _input else func()
-                self.df.loc[self.df[column].count(), column] = result
+                new_row = self.df[column].count()
+                self.df.loc[new_row, column] = result
+                if category is not None:
+                    self.df.loc[new_row, "class"] = category
                 return result
             return build_df_wrapper
         return build_df_decorator
 
-
     def add_stopwords(self, new_stopwords):
+        """Adds stopwords to the NLD attribute stopwords."""
         if isinstance(new_stopwords, str):
             new_stopwords = [new_stopwords]
         self.stopwords += new_stopwords
@@ -103,7 +111,6 @@ class NLD(object):
             self.id = str(uuid.uuid4())
             self.chain[self.id] = ""
             self.ids.append(self.id)
-
 
     def freq_dist(self, number=5):
         """
@@ -354,7 +361,7 @@ class NLD(object):
 
             @nldmethod
             def apply_to_column_wrapper(*args, **kwargs):
-                assert isinstance(column_name, str)
+                raise NotImplementedError("This method is not developed / implemented yet.")
 
     def word_tokenizer(self, func):
         """
@@ -410,7 +417,7 @@ class NLD(object):
         """
         Sets the iterable attribute if it was not set an returns the next item from it.
         This can be used to pass a list of sentences / texts to the next decorator for example.
-        :param func: a function
+        :param track_number: any string or number to keep track of iteration for different runs where the input function has the same name.
         :return:
         """
         def iterator_decorator(func):
