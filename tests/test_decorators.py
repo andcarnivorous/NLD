@@ -2,7 +2,14 @@ import unittest
 from unittest import TestCase
 from nld.nld import NLD
 
-text = open("loremipsum.txt").read()
+text = """Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec varius felis nulla, varius hendrerit felis porta eget.
+        Suspendisse eu urna dapibus, vehicula velit eu, fermentum turpis. Sed rutrum tincidunt justo eu pellentesque.
+        Suspendisse blandit volutpat mi ut interdum. Aliquam vitae pulvinar nulla. Mauris fringilla turpis eget bibendum posuere. 
+        Aenean sodales ex tortor, in viverra ipsum tristique eu. Nullam posuere lacinia mi nec hendrerit. 
+        In ut urna quam. Aliquam pulvinar nisl eget nisi tincidunt, et tristique ante efficitur. 
+        Sed scelerisque ullamcorper tellus quis efficitur. Mauris sit amet volutpat nulla. 
+        Phasellus vitae fermentum felis, a malesuada velit.
+        """
 
 def return_text(text):
     return text
