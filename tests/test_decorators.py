@@ -25,7 +25,7 @@ class TestDecorators(TestCase):
     def test_word_tokenizer(self):
         func = self.nldecorator.word_tokenizer(return_text)
         result = func(text)
-        self.assertEqual(len(result), 571)
+        self.assertEqual(len(result), 116)
         self.assertTrue(isinstance(result, list))
 
     def test_word_tokenizer_exception(self):
