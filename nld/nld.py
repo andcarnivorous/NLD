@@ -1,7 +1,6 @@
 import logging
 import string
 import uuid
-from functools import wraps
 from time import time
 import pandas as pd
 
@@ -47,6 +46,30 @@ class NLD(object):
         self.no_input = False
         self.df = None
 
+    def build_series(self, _func=None, *, vals=None):
+
+        if vals and vals.lower() not in ["word", "output"]:
+            raise ValueError("vals must be either word or output if provided")
+
+        @nldmethod
+        def build_series_decorator(func):
+            self._check_id(func)
+            self.chain[self.id]  += func.__name__ + "-"
+
+            @nldmethod
+            def build_series_wrapper(_input=None):
+                result = func(_input) if _input else func()
+                if vals:
+                    result = pd.Series([x[0 if vals == "word" else 1] for x in result])
+                else:
+                    result = pd.Series(result)
+                return result
+            return build_series_wrapper
+        if not _func:
+            return build_series_decorator
+        else:
+            return build_series_decorator(_func)
+
     def build_df(self, column, category=None):
         """
         Returns a NLTK FreqDist from a given list.
@@ -56,7 +79,6 @@ class NLD(object):
         def build_df_decorator(func):
             self._check_id(func)
             self.chain[self.id] += func.__name__ + "-"
-            wraps(func)
 
             @nldmethod
             def build_df_wrapper(_input=None):
@@ -69,10 +91,29 @@ class NLD(object):
                     if self.logger: self.logger.info("Created column: %s", column)
                 result = func(_input) if _input else func()
                 new_row = self.df[column].count()
-                self.df.loc[new_row, column] = result
+                if not isinstance(column, pd.Series):
+                    self.df.loc[new_row, column] = result
+                else:
+                    self.df[column] = result
                 if category is not None:
                     self.df.loc[new_row, "class"] = category
                 return result
+
+            @nldmethod
+            def build_df_from_series_wrapper(_input=None):
+                if isinstance(self.df, type(None)):
+                    self.df = pd.DataFrame()
+                if column not in self.df.columns:
+                    self.df[column] = None
+                    if category is not None and "class" not in self.df.columns:
+                        self.df["class"] = None
+                    if self.logger: self.logger.info("Created column: %s", column)
+                result = func(_input) if _input else func()
+                self.df[column] = result
+                return result
+
+            if func.__name__ in ["build_series", "build_series_decorator", "build_series_wrapper"]:
+                return build_df_from_series_wrapper
             return build_df_wrapper
         return build_df_decorator
 
@@ -121,7 +162,6 @@ class NLD(object):
         def freq_dist_decorator(func):
             self._check_id(func)
             self.chain[self.id] += func.__name__ + "-"
-            wraps(func)
 
             @nldmethod
             def freq_dist_wrapper(_input=None):
@@ -136,48 +176,52 @@ class NLD(object):
 
         return freq_dist_decorator
 
-    def named_entity(self, func):
-        """
+    def named_entity(self, _func=None):
+        """"""
+        def named_entity_decorator(func):
+            self._check_id(func)
+            self.chain[self.id] += func.__name__ + "-"
 
-        :param func:
-        :return:
-        """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
+            @nldmethod
+            def named_entity_wrapper(_input=None):
+                result = func(_input) if _input else func()
+                if isinstance(result, list) and isinstance(result[0], tuple):
+                    return ne_chunk(result)
 
-        @nldmethod
-        def named_entity_wrapper(_input=None):
-            result = func(_input) if _input else func()
-            if isinstance(result, list) and isinstance(result[0], tuple):
-                return ne_chunk(result)
+            return named_entity_wrapper
+        if not _func:
+            return named_entity_decorator
+        else:
+            return named_entity_decorator(_func)
 
-        return named_entity_wrapper
-
-    def pos_tagger(self, func):
+    def pos_tagger(self, _func=None):
         """
         Takes a string or a list of strings and returns a NLTK pos_tag list.
         :param func:
         :return:
         """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
+        def pos_tagger_decorator(func):
+            self._check_id(func)
+            self.chain[self.id] += func.__name__ + "-"
 
-        @nldmethod
-        def pos_wrapper(_input=None):
-            result = func(_input) if _input else func()
-            if isinstance(result, str):
-                if self.logger:
-                    self.logger.info("Input to pos tagger is of type string.")
-                return list(pos_tag(result.split()))
-            elif isinstance(result, list):
-                if self.logger:
-                    self.logger.info("Input to pos tagger is of type list.")
-                return list(pos_tag(result))
-            else:
-                raise TypeError("pos_tagger decorator only accepts string or list output, output received is %s" % type(result))
-        return pos_wrapper
+            @nldmethod
+            def pos_wrapper(_input=None):
+                result = func(_input) if _input else func()
+                if isinstance(result, str):
+                    if self.logger:
+                        self.logger.info("Input to pos tagger is of type string.")
+                    return list(pos_tag(result.split()))
+                elif isinstance(result, list):
+                    if self.logger:
+                        self.logger.info("Input to pos tagger is of type list.")
+                    return list(pos_tag(result))
+                else:
+                    raise TypeError("pos_tagger decorator only accepts string or list output, output received is %s" % type(result))
+            return pos_wrapper
+        if not _func:
+            return pos_tagger_decorator
+        else:
+            return pos_tagger_decorator(_func)
 
     def n_grams(self, number):
         """
@@ -189,7 +233,6 @@ class NLD(object):
         def ngrams_decorator(func):
             self._check_id(func)
             self.chain[self.id] += func.__name__ + "-"
-            wraps(func)
 
             @nldmethod
             def ngrams_wrapper(_input=None):
@@ -204,63 +247,75 @@ class NLD(object):
 
         return ngrams_decorator
 
-    def stem(self, func):
+    def stem(self, _func=None):
         """
         Takes a list of tuples and applies the EnglishStemmer from NLTK stem.snowball.
         :param func:
         :return:
         """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
+        def stem_decorator(func):
+            self._check_id(func)
+            self.chain[self.id] += func.__name__ + "-"
 
-        @nldmethod
-        def stem_wrapper(_input=None):
-            stemmer = EnglishStemmer()
-            result = func(_input) if _input else func()
-            if isinstance(result, list):
-                if isinstance(result[0], tuple):
-                    for i in range(len(result)):
-                        result[i] = list(result[i])
-                        result[i][0] = stemmer.stem(result[i][0])
-                        result[i] = tuple(result[i])
-                    return result
-                return [stemmer.stem(word) for word in result]
+            @nldmethod
+            def stem_wrapper(_input=None):
+                stemmer = EnglishStemmer()
+                result = func(_input) if _input else func()
+                if isinstance(result, list):
+                    if isinstance(result[0], tuple):
+                        for i in range(len(result)):
+                            result[i] = list(result[i])
+                            result[i][0] = stemmer.stem(result[i][0])
+                            result[i] = tuple(result[i])
+                        return result
+                    return [stemmer.stem(word) for word in result]
+            return stem_wrapper
+        if not _func:
+            return stem_decorator
+        else:
+            return stem_decorator(_func)
 
-        return stem_wrapper
+    def lemmatize(self, _func=None):
+        def lemmatize_decorator(func):
+            self._check_id(func)
+            self.chain[self.id] += func.__name__ + "-"
 
-    def lemmatize(self, func):
-        """"""
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
+            @nldmethod
+            def lemmatize_wrapper(_input=None):
+                lemmatizer = WordNetLemmatizer()
+                result = func(_input) if _input else func()
+                if isinstance(result, list):
+                    if len(result) > 0 and isinstance(result[0], tuple):
+                        if self.logger:
+                            self.logger.info('lemmatize input is tuple')
+                        for i in range(len(result)):
+                            result[i] = list(result[i])
+                            result[i][0] = lemmatizer.lemmatize(result[i][0])
+                            result[i] = tuple(result[i])
+                        return result
+                    return [lemmatizer.lemmatize(word) for word in result]
+            return lemmatize_wrapper
+        if not _func:
+            return lemmatize_decorator
+        else:
+            return lemmatize_decorator(_func)
 
-        @nldmethod
-        def lemmatize_wrapper(_input=None):
-            lemmatizer = WordNetLemmatizer()
-            result = func(_input) if _input else func()
-            if isinstance(result, list):
-                if len(result) > 0 and isinstance(result[0], tuple):
-                    if self.logger:
-                        self.logger.info('lemmatize input is tuple')
-                    for i in range(len(result)):
-                        result[i] = list(result[i])
-                        result[i][0] = lemmatizer.lemmatize(result[i][0])
-                        result[i] = tuple(result[i])
-                    return result
-                return [lemmatizer.lemmatize(word) for word in result]
-        return lemmatize_wrapper
-
-    def remove_stopwords(self, punct=False):
+    def remove_stopwords(self, _func=None, *, punct=False, extra=[]):
         """
         Takes a list of strings and removes all strings in attribute self.stopwords. If punct True it also removes punctuation.
-        :param punct:
+        The arguments punct and extra have to be specified when calling the function if they want to be set differently than default.
+        :param punct: Whether or not to remove punctuation as well.
+        :param extra: A list of strings to add extra stopwords to the ones already available, only for this run
         :return:
         """
+
+        if extra:
+            if not isinstance(extra, list) or  not isinstance(extra, tuple):
+                raise TypeError("Extra stopwords have to be provided in a list or tuple.")
+
         def remove_stopwords_decorator(func):
             self._check_id(func)
             self.chain[self.id] += func.__name__ + "-"
-            wraps(func)
 
             @nldmethod
             def rm_stopwords_wrapper(_input=None):
@@ -268,56 +323,69 @@ class NLD(object):
                 if not isinstance(result, list):
                     raise TypeError("remove_stopwords decorator only accepts a list output, output received is %s" % type(result))
                 if not punct:
-                    return [word for word in result if word not in self.stopwords]
+                    return [word for word in result if word not in self.stopwords + list(extra)]
                 else:
                     punctuation = set(string.punctuation)
                     return [word for word in result if word not in self.stopwords and word not in punctuation]
 
             return rm_stopwords_wrapper
+        if not _func:
+            return remove_stopwords_decorator
+        else:
+            return remove_stopwords_decorator(_func)
 
-        return remove_stopwords_decorator
-
-    def upper(self, func):
+    def upper(self, _func=None):
         """
         Returns a string or list of strings as upper case.
         :param func:
         :return:
         """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
+        def upper_decorator(func):
+            self._check_id(func)
 
-        @nldmethod
-        def upper_wrapper(_input=None):
-            result = func(_input) if _input else func()
-            if isinstance(result, str):
-                return result.upper()
-            elif isinstance(result, list):
-                return [word.upper() for word in result]
-            else:
-                raise TypeError("upper decorator only accepts string or list output, output received is %s" % type(result))
-        return upper_wrapper
+            self.chain[self.id] += func.__name__ + "-"
 
-    def lower(self, func):
+            @nldmethod
+            def upper_wrapper(_input=None):
+                result = func(_input) if _input else func()
+                if isinstance(result, str):
+                    return result.upper()
+                elif isinstance(result, list):
+                    return [word.upper() for word in result]
+                else:
+                    raise TypeError("upper decorator only accepts string or list output, output received is %s" % type(result))
+            return upper_wrapper
+        if not _func:
+            return upper_decorator
+        else:
+            return upper_decorator(_func)
+
+    def lower(self, _func=None):
         """
         Returns a string or list of strings as lower case.
         :param func:
         :return:
         """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
-
         @nldmethod
-        def lower_wrapper(_input=None):
-            result = func(_input) if _input else func()
-            if isinstance(result, str):
-                return result.lower()
-            elif isinstance(result, list):
-                return [word.lower() for word in result]
-            else:
-                raise TypeError("lower decorator only accepts string or list output, output received is %s" % type(result))
-        return lower_wrapper
+        def lower_decorator(func):
+            self._check_id(func)
+
+            self.chain[self.id] += func.__name__ + "-"
+
+            @nldmethod
+            def lower_wrapper(_input=None):
+                result = func(_input) if _input else func()
+                if isinstance(result, str):
+                    return result.lower()
+                elif isinstance(result, list):
+                    return [word.lower() for word in result]
+                else:
+                    raise TypeError("lower decorator only accepts string or list output, output received is %s" % type(result))
+            return lower_wrapper
+        if not _func:
+            return lower_decorator
+        else:
+            return lower_decorator(_func)
 
     def substitute(self, patterns):
         """
@@ -328,7 +396,6 @@ class NLD(object):
         def sub_decorator(func):
             self._check_id(func)
             self.chain[self.id] += func.__name__ + "-"
-            wraps(func)
 
             @nldmethod
             def sub_wrapper(*args, **kwargs):
@@ -357,61 +424,70 @@ class NLD(object):
         def apply_to_column_decorator(func):
             self._check_id(func)
             self.chain[self.id] += func.__name__ + "-"
-            wraps(func)
+
 
             @nldmethod
             def apply_to_column_wrapper(*args, **kwargs):
                 raise NotImplementedError("This method is not developed / implemented yet.")
 
-    def word_tokenizer(self, func):
+    def word_tokenizer(self, _func=None):
         """
         Applies NLTK word_tokenizer from tokenize
         :param func:
         :return:
         """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
+        def word_tokenizer_decorator(func):
+            self._check_id(func)
+            self.chain[self.id] += func.__name__ + "-"
 
-        @nldmethod
-        def word_tokenizer_wrapper(_input=None):
-            result = func(_input) if _input else func()
-            if not isinstance(result, str):
-                raise TypeError("Decorator word_tokenizer only accepts string output, output received is %s" % type(result))
-            try:
-                result = word_tokenize(result)
-                return result
-            except LookupError:
-                raise LookupError("You miss the stopwords module from NLTK, which is required for NLD. Execute nltk.download('punkt') to download it.")
-            return word_tokenize(result)
-        return word_tokenizer_wrapper
+            @nldmethod
+            def word_tokenizer_wrapper(_input=None):
+                result = func(_input) if _input else func()
+                if not isinstance(result, str):
+                    raise TypeError("Decorator word_tokenizer only accepts string output, output received is %s" % type(result))
+                try:
+                    result = word_tokenize(result)
+                    return result
+                except LookupError:
+                    raise LookupError("You miss the stopwords module from NLTK, which is required for NLD. Execute nltk.download('punkt') to download it.")
+                return word_tokenize(result)
+            return word_tokenizer_wrapper
 
-    def timeit(self, func):
+        if not _func:
+            return word_tokenizer_decorator
+        else:
+            return word_tokenizer_decorator(_func)
+
+    def timeit(self, _func=None):
         """
         Times the execution of the previous decorators and appends to the list of run times.
         :param func: a function
         :return:
         """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
+        def timeit_decorator(func):
+            self._check_id(func)
+            self.chain[self.id] += func.__name__ + "-"
 
-        @nldmethod
-        def timeit_wrapper(_input=None):
-            def run_time_version(name):
-                version = [x for x in self.all_process_times if name in x]
-                verion = len(version) + 1
-                return version
-            t0 = time()
-            result = func(_input) if _input else func()
-            timing = time() - t0
-            self.process_time = timing
-            if self.logger:
-                self.logger.info("Preprocessing took %.2f seconds", timing)
-            if self.store_all_process_times:
-                self.all_process_times[func.__name__] = self.process_time
-            return result
-        return timeit_wrapper
+            @nldmethod
+            def timeit_wrapper(_input=None):
+                def run_time_version(name):
+                    version = [x for x in self.all_process_times if name in x]
+                    verion = len(version) + 1
+                    return version
+                t0 = time()
+                result = func(_input) if _input else func()
+                timing = time() - t0
+                self.process_time = timing
+                if self.logger:
+                    self.logger.info("Preprocessing took %.2f seconds", timing)
+                if self.store_all_process_times:
+                    self.all_process_times[func.__name__] = self.process_time
+                return result
+            return timeit_wrapper
+        if not _func:
+            return timeit_decorator
+        else:
+            return timeit_decorator(_func)
 
     def iterator(self, track_number=None):
         """
@@ -422,7 +498,6 @@ class NLD(object):
         """
         def iterator_decorator(func):
             self._check_id(func)
-            wraps(func)
             self.chain[self.id] += func.__name__ + "-"
 
             @nldmethod
@@ -442,31 +517,35 @@ class NLD(object):
             return iterator_wrapper
         return iterator_decorator
 
-    def open_from_path(self, func):
+    def open_from_path(self, _func=None):
         """
         Opens a single file or all the files in a given directory.
         :param func:
         :return:
         """
-        self._check_id(func)
-        wraps(func)
-        self.chain[self.id] += func.__name__ + "-"
+        def open_from_path_decorator(func):
+            self._check_id(func)
+            self.chain[self.id] += func.__name__ + "-"
 
-        @nldmethod
-        def open_from_path_wrapper(_input=None):
-            result = func(_input) if _input else func()
-            try:
-                import os
-                if isinstance(result, str) and os.path.isfile(result):
-                    with open(result) as output:
-                        output = output.read()
+            @nldmethod
+            def open_from_path_wrapper(_input=None):
+                result = func(_input) if _input else func()
+                try:
+                    import os
+                    if isinstance(result, str) and os.path.isfile(result):
+                        with open(result) as output:
+                            output = output.read()
+                            return output
+                    elif isinstance(result, str) and os.path.isdir(result):
+                        output = [open(os.path.join(result, _file)).read() for _file in os.listdir(result)]
                         return output
-                elif isinstance(result, str) and os.path.isdir(result):
-                    output = [open(os.path.join(result, _file)).read() for _file in os.listdir(result)]
-                    return output
-            except:
-                raise
-        return open_from_path_wrapper
+                except:
+                    raise
+            return open_from_path_wrapper
+        if not _func:
+            return open_from_path_decorator
+        else:
+            return open_from_path_decorator(_func)
 
     def blank(self, func):
         """
@@ -475,7 +554,6 @@ class NLD(object):
         :return:
         """
         self._check_id(func)
-        wraps(func)
         self.chain[self.id] += func.__name__ + "-"
 
         @nldmethod
