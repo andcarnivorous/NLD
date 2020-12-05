@@ -14,14 +14,6 @@ text = """Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec varius 
         """
 
 
-def return_text(text):
-    return text
-
-
-def return_none():
-    return None
-
-
 class TestDecorators(TestCase):
 
     def setUp(self):
