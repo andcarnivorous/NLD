@@ -99,3 +99,25 @@ class TestDecorators(TestCase):
         result = return_text(text)
         self.assertTrue(isinstance(result, pd.Series))
         self.assertTrue(isinstance(result[0], np.int64))
+
+    def test_build_df_with_series(self):
+
+        @self.nldecorator.build_df(column="col.1")
+        @self.nldecorator.build_series(vals="word")
+        @self.nldecorator.freq_dist(5)
+        @self.nldecorator.word_tokenizer()
+        def return_text_1(text):
+            return text
+
+        @self.nldecorator.build_df(column="col.2")
+        @self.nldecorator.build_series(vals="output")
+        @self.nldecorator.freq_dist(5)
+        @self.nldecorator.word_tokenizer()
+        def return_text_2(text):
+            return text
+
+        return_text_1(text)
+        return_text_2(text)
+
+        self.assertTrue(isinstance(self.nldecorator.df, pd.DataFrame))
+        self.assertTrue(len(self.nldecorator.df.columns) == 2)
