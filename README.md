@@ -3,6 +3,16 @@
 This is a package to carry out common text preprocessing tasks in NLTK using dedicated decorators from a class that can also help keep track of the preprocessing steps taken, time it took preprocessing and build simple pipelines faster, especially for when simple exploratory analysis is being carried out.
 
 
+## Install
+
+To install the package, from the root directory of the repository, run the following:
+
+`python3 setup.py install --user`
+
+This will also install nltk 3.4.5
+
+## Examples
+
 The followings are some examples of the preprocessing steps that can be applied, including mistakes that may go undetected.
 
 ```python
@@ -135,12 +145,3 @@ nldecorator.df
 | 0 	| [one, awesom, string, ,, written, person, .] |    [(This, DT), (one, CD), (is, VBZ), (my, PRP$),... |
 | 1 	| [two, awesom, string, ,, written, person, 2, .] | [(This, DT), (two, CD), (is, VBZ), (my, PRP$),... |
 | 2 	| [three, awesom, string, ,, written, person, 3, .] |   [(This, DT), (three, CD), (is, VBZ), (my, PRP$... |
-
-
-## Install
-
-To install the package, from the root directory of the repository, run the following:
-
-`python3 setup.py install --user`
-
-This will also install nltk 3.4.5
