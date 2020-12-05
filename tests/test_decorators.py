@@ -45,7 +45,6 @@ class TestDecorators(TestCase):
             return text
 
         result = return_text(text)
-        print(result)
         self.assertTrue(result.islower())
 
     def test_lower_list(self):
@@ -113,6 +112,24 @@ class TestDecorators(TestCase):
         @self.nldecorator.build_series(vals="output")
         @self.nldecorator.freq_dist(5)
         @self.nldecorator.word_tokenizer()
+        def return_text_2(text):
+            return text
+
+        return_text_1(text)
+        return_text_2(text)
+
+        self.assertTrue(isinstance(self.nldecorator.df, pd.DataFrame))
+        self.assertTrue(len(self.nldecorator.df.columns) == 2)
+
+    def test_build_df(self):
+
+        @self.nldecorator.build_df(column="col.1")
+        @self.nldecorator.word_tokenizer()
+        def return_text_1(text):
+            return text
+
+        @self.nldecorator.build_df(column="col.2")
+        @self.nldecorator.pos_tagger()
         def return_text_2(text):
             return text
 
