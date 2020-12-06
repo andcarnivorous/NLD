@@ -28,7 +28,7 @@ nldecorator = nld.NLD(logger=True, store_all_process_times=True)
 @nldecorator.timeit
 @nldecorator.freq_dist()
 @nldecorator.stem
-@nldecorator.remove_stopwords(True)
+@nldecorator.remove_stopwords(punct=True) # this key argument must be specified
 @nldecorator.substitute([("emma", "peppa")])
 @nldecorator.lower
 def tokenize(_input: str) -> list:
