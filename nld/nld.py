@@ -47,9 +47,14 @@ class NLD(object):
         self.df = None
 
     def build_series(self, _func=None, *, vals=None):
-
+        """
+        Creates a series out of a list output from the previous function. If this is a list of lists or list of tuples,
+        passing the value 'word' to the parameter `vals` will get only the tokens from the output.
+        Passing `output` to `vals` will instead return only the second item in the results.
+        :param vals: a string that should be either "word" or "output"
+        """
         if vals and vals.lower() not in ["word", "output"]:
-            raise ValueError("vals must be either word or output if provided")
+            raise ValueError("vals must be either `word` or `output` if provided")
 
         @nldmethod
         def build_series_decorator(func):
@@ -177,7 +182,9 @@ class NLD(object):
         return freq_dist_decorator
 
     def named_entity(self, _func=None):
-        """"""
+        """
+        Applies the ne_chunk from NLTK
+        """
         def named_entity_decorator(func):
             self._check_id(func)
             self.chain[self.id] += func.__name__ + "-"
@@ -277,7 +284,7 @@ class NLD(object):
 
     def lemmatize(self, _func=None):
         """
-
+        Applies the WordNetLemmatizer from NLTK.
         return
         """
 
@@ -429,7 +436,6 @@ class NLD(object):
         def apply_to_column_decorator(func):
             self._check_id(func)
             self.chain[self.id] += func.__name__ + "-"
-
 
             @nldmethod
             def apply_to_column_wrapper(*args, **kwargs):
