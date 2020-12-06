@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="nld-ANDCARNIVOROUS",
+    name="nld",
     version="0.0.1",
     author="Andrea Favia",
     author_email="drewlinguistics01@gmail.com",

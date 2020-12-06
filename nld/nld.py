@@ -88,7 +88,7 @@ class NLD(object):
                     self.df[column] = None
                     if category is not None and "class" not in self.df.columns:
                         self.df["class"] = None
-                    if self.logger: self.logger.info("Created column: %s", column)
+                    if self.logger: self.logger.info("Build DF : Created column: %s", column)
                 result = func(_input) if _input else func()
                 new_row = self.df[column].count()
                 if not isinstance(column, pd.Series):
@@ -107,7 +107,7 @@ class NLD(object):
                     self.df[column] = None
                     if category is not None and "class" not in self.df.columns:
                         self.df["class"] = None
-                    if self.logger: self.logger.info("Created column: %s", column)
+                    if self.logger: self.logger.info("Build DF : Created column: %s", column)
                 result = func(_input) if _input else func()
                 self.df[column] = result
                 return result
@@ -168,7 +168,7 @@ class NLD(object):
                 result = func(_input) if _input else func()
                 if isinstance(result, list):
                     if self.logger:
-                        self.logger.debug("Getting frequencies...")
+                        self.logger.debug("Freq Dist : Getting frequencies...")
                     return FreqDist(result).most_common(number)
                 else:
                     raise TypeError("The input to freq_dist must be of type list")
@@ -209,11 +209,11 @@ class NLD(object):
                 result = func(_input) if _input else func()
                 if isinstance(result, str):
                     if self.logger:
-                        self.logger.info("Input to pos tagger is of type string.")
+                        self.logger.info("POS Tagger : Input to pos tagger is of type string.")
                     return list(pos_tag(result.split()))
                 elif isinstance(result, list):
                     if self.logger:
-                        self.logger.info("Input to pos tagger is of type list.")
+                        self.logger.info("POS Tagger : Input to pos tagger is of type list.")
                     return list(pos_tag(result))
                 else:
                     raise TypeError("pos_tagger decorator only accepts string or list output, output received is %s" % type(result))
@@ -276,6 +276,11 @@ class NLD(object):
             return stem_decorator(_func)
 
     def lemmatize(self, _func=None):
+        """
+
+        return
+        """
+
         def lemmatize_decorator(func):
             self._check_id(func)
             self.chain[self.id] += func.__name__ + "-"
@@ -287,7 +292,7 @@ class NLD(object):
                 if isinstance(result, list):
                     if len(result) > 0 and isinstance(result[0], tuple):
                         if self.logger:
-                            self.logger.info('lemmatize input is tuple')
+                            self.logger.info('Lemmatize : input is tuple')
                         for i in range(len(result)):
                             result[i] = list(result[i])
                             result[i][0] = lemmatizer.lemmatize(result[i][0])
@@ -402,7 +407,7 @@ class NLD(object):
                 import re
                 result = func(*args, **kwargs)
                 if self.logger:
-                    self.logger.info("patterns: %s", patterns)
+                    self.logger.info("Substitue : patterns: %s", patterns)
                 if isinstance(result, str):
                     for pattern in patterns:
                         old_word, new_word = pattern
@@ -470,16 +475,12 @@ class NLD(object):
 
             @nldmethod
             def timeit_wrapper(_input=None):
-                def run_time_version(name):
-                    version = [x for x in self.all_process_times if name in x]
-                    verion = len(version) + 1
-                    return version
                 t0 = time()
                 result = func(_input) if _input else func()
                 timing = time() - t0
                 self.process_time = timing
                 if self.logger:
-                    self.logger.info("Preprocessing took %.2f seconds", timing)
+                    self.logger.info("Timeit : Preprocessing took %.2f seconds", timing)
                 if self.store_all_process_times:
                     self.all_process_times[func.__name__] = self.process_time
                 return result
@@ -510,7 +511,7 @@ class NLD(object):
                     self.iterable[key_name] = (item for item in result)
                 try:
                     if self.logger:
-                        self.logger.info("iterable: %s", self.iterable[key_name])
+                        self.logger.info("Iterable : key_name : %s", self.iterable[key_name])
                     return next(self.iterable[key_name])
                 except StopIteration:
                     raise StopIteration("There are no more iterables")
