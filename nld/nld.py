@@ -22,7 +22,7 @@ class NLD(object):
     used in the decorators. The other attributes are used to keep track of each run and the decorators used.
     """
     def __init__(self, logger=None, store_all_process_times=False, language="english", verbose=False):
-        self.__name__ = "CompLing"
+        self.__name__ = "NLD"
         if logger:
             logging.basicConfig(
                                 format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
@@ -94,7 +94,8 @@ class NLD(object):
     def build_df(self, column, category=None):
         """
         Returns a NLTK FreqDist from a given list.
-        :param number: Number of top most frequent items
+        :param column: name of the column which will be created from the output of the previous function.
+        :param category: If set to a string or integer, it will create a class column in the nld dataframe with that value.
         """
         @nldmethod
         def build_df_decorator(func):
@@ -334,7 +335,8 @@ class NLD(object):
         """
         Takes a list of strings and removes all strings in attribute self.stopwords. If punct True it also removes punctuation.
         The arguments punct and extra have to be specified when calling the function if they want to be set differently than default.
-        :param punct: Whether or not to remove punctuation as well.
+        :param punct: Whether or not to remove punctuation as well. Default on False.
+        :param stop_words: custom list of stopwords which can be passed, this will override the nld attribute stopwords.
         :param extra: A list of strings to add extra stopwords to the ones already available, only for this run
         :return:
         """
@@ -461,10 +463,10 @@ class NLD(object):
             def apply_to_column_wrapper(*args, **kwargs):
                 raise NotImplementedError("This method is not developed / implemented yet.")
 
-    def word_tokenizer(self, _func=None, * , punct=False):
+    def word_tokenizer(self, _func=None, *, punct=False):
         """
         Applies NLTK word_tokenizer from tokenize
-        :param func:
+        :param punct: default on False, if True it removes punctuation from the token list.
         :return:
         """
         def word_tokenizer_decorator(func):
