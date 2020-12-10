@@ -21,7 +21,7 @@ class NLD(object):
     The NLD object contains the NLD decorators. The `stopwords`, `store_all_process_times`, `iterables` and `logger` attributes are
     used in the decorators. The other attributes are used to keep track of each run and the decorators used.
     """
-    def __init__(self, logger=None, store_all_process_times=False, language="english"):
+    def __init__(self, logger=None, store_all_process_times=False, language="english", verbose=False):
         self.__name__ = "CompLing"
         if logger:
             logging.basicConfig(
@@ -30,7 +30,13 @@ class NLD(object):
                                 level=logging.INFO)
             self.logger = logging.getLogger(self.__name__)
         else:
-            self.logger = None
+            logging.basicConfig(
+                                format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                                datefmt='%H:%M:%S',
+                                level=logging.CRITICAL)
+            self.logger = logging.getLogger(self.__name__)
+
+        self.verbose = verbose
         self.process_time = None
         self.language = language
         try:
@@ -45,6 +51,16 @@ class NLD(object):
         self.ids = []
         self.no_input = False
         self.df = None
+
+    def print_verbose(self, message, level):
+        if self.verbose:
+            print(message)
+        if level == "info":
+            self.logger.info(message)
+        elif level == "warning":
+            self.logger.warning(message)
+        else:
+            self.logger.error(message)
 
     def build_series(self, _func=None, *, vals=None):
         """
@@ -93,7 +109,8 @@ class NLD(object):
                     self.df[column] = None
                     if category is not None and "class" not in self.df.columns:
                         self.df["class"] = None
-                    if self.logger: self.logger.info("Build DF : Created column: %s", column)
+                    msg = "Build DF : Created column: %s" % column
+                    self.print_verbose(msg, "info")
                 result = func(_input) if _input else func()
                 new_row = self.df[column].count()
                 if not isinstance(column, pd.Series):
@@ -112,7 +129,8 @@ class NLD(object):
                     self.df[column] = None
                     if category is not None and "class" not in self.df.columns:
                         self.df["class"] = None
-                    if self.logger: self.logger.info("Build DF : Created column: %s", column)
+                    msg = "Build DF : Created column: %s" % column
+                    self.print_verbose(self.verbose, msg)
                 result = func(_input) if _input else func()
                 self.df[column] = result
                 return result
@@ -172,8 +190,8 @@ class NLD(object):
             def freq_dist_wrapper(_input=None):
                 result = func(_input) if _input else func()
                 if isinstance(result, list):
-                    if self.logger:
-                        self.logger.debug("Freq Dist : Getting frequencies...")
+                    msg = "Freq Dist : Getting frequencies..."
+                    self.print_verbose(msg, "info")
                     return FreqDist(result).most_common(number)
                 else:
                     raise TypeError("The input to freq_dist must be of type list")
@@ -215,12 +233,12 @@ class NLD(object):
             def pos_wrapper(_input=None):
                 result = func(_input) if _input else func()
                 if isinstance(result, str):
-                    if self.logger:
-                        self.logger.info("POS Tagger : Input to pos tagger is of type string.")
+                    msg = "POS Tagger : Input to pos tagger is of type string."
+                    self.print_verbose(msg, "info")
                     return list(pos_tag(result.split()))
                 elif isinstance(result, list):
-                    if self.logger:
-                        self.logger.info("POS Tagger : Input to pos tagger is of type list.")
+                    msg = "POS Tagger : Input to pos tagger is of type list."
+                    self.print_verbose(msg, "info")
                     return list(pos_tag(result))
                 else:
                     raise TypeError("pos_tagger decorator only accepts string or list output, output received is %s" % type(result))
@@ -298,8 +316,8 @@ class NLD(object):
                 result = func(_input) if _input else func()
                 if isinstance(result, list):
                     if len(result) > 0 and isinstance(result[0], tuple):
-                        if self.logger:
-                            self.logger.info('Lemmatize : input is tuple')
+                        msg = 'Lemmatize : input is tuple'
+                        self.print_verbose(msg, "info")
                         for i in range(len(result)):
                             result[i] = list(result[i])
                             result[i][0] = lemmatizer.lemmatize(result[i][0])
@@ -312,7 +330,7 @@ class NLD(object):
         else:
             return lemmatize_decorator(_func)
 
-    def remove_stopwords(self, _func=None, *, punct=False, extra=[]):
+    def remove_stopwords(self, _func=None, *, punct=False, stop_words=False, extra=[]):
         """
         Takes a list of strings and removes all strings in attribute self.stopwords. If punct True it also removes punctuation.
         The arguments punct and extra have to be specified when calling the function if they want to be set differently than default.
@@ -332,13 +350,14 @@ class NLD(object):
             @nldmethod
             def rm_stopwords_wrapper(_input=None):
                 result = func(_input) if _input else func()
+                stop_words_to_use = stop_words if stop_words else self.stopwords
                 if not isinstance(result, list):
                     raise TypeError("remove_stopwords decorator only accepts a list output, output received is %s" % type(result))
                 if not punct:
-                    return [word for word in result if word not in self.stopwords + list(extra)]
+                    return [word for word in result if word not in stop_words_to_use + list(extra)]
                 else:
                     punctuation = set(string.punctuation)
-                    return [word for word in result if word not in self.stopwords and word not in punctuation]
+                    return [word for word in result if word not in stop_words_to_use + list(extra) and word not in punctuation]
 
             return rm_stopwords_wrapper
         if not _func:
@@ -413,8 +432,8 @@ class NLD(object):
             def sub_wrapper(*args, **kwargs):
                 import re
                 result = func(*args, **kwargs)
-                if self.logger:
-                    self.logger.info("Substitue : patterns: %s", patterns)
+                msg = "Substitue : patterns: %s" % patterns
+                self.print_verbose(msg, "info")
                 if isinstance(result, str):
                     for pattern in patterns:
                         old_word, new_word = pattern
@@ -424,6 +443,7 @@ class NLD(object):
                     for pattern in patterns:
                         old_word, new_word = pattern
                         result = [re.sub(old_word, new_word, word) for word in result]
+                        result = [word for word in result if word]
                         return result
                 else:
                     raise TypeError("substitute decorator only accepts string or list output, output received is %s" % type(result))
@@ -441,7 +461,7 @@ class NLD(object):
             def apply_to_column_wrapper(*args, **kwargs):
                 raise NotImplementedError("This method is not developed / implemented yet.")
 
-    def word_tokenizer(self, _func=None):
+    def word_tokenizer(self, _func=None, * , punct=False):
         """
         Applies NLTK word_tokenizer from tokenize
         :param func:
@@ -458,6 +478,11 @@ class NLD(object):
                     raise TypeError("Decorator word_tokenizer only accepts string output, output received is %s" % type(result))
                 try:
                     result = word_tokenize(result)
+                    if punct:
+                        msg = "word_tokenize: remove punctuation"
+                        self.print_verbose(msg, "info")
+                        import string
+                        result = [word for word in result if word not in set(string.punctuation)]
                     return result
                 except LookupError:
                     raise LookupError("You miss the stopwords module from NLTK, which is required for NLD. Execute nltk.download('punkt') to download it.")
@@ -485,8 +510,8 @@ class NLD(object):
                 result = func(_input) if _input else func()
                 timing = time() - t0
                 self.process_time = timing
-                if self.logger:
-                    self.logger.info("Timeit : Preprocessing took %.2f seconds", timing)
+                msg = "Timeit : Preprocessing took %.2f seconds" % timing
+                self.print_verbose(msg, "info")
                 if self.store_all_process_times:
                     self.all_process_times[func.__name__] = self.process_time
                 return result
@@ -516,8 +541,8 @@ class NLD(object):
                 if not self.iterable or key_name not in self.iterable:
                     self.iterable[key_name] = (item for item in result)
                 try:
-                    if self.logger:
-                        self.logger.info("Iterable : key_name : %s", self.iterable[key_name])
+                    msg = "Iterable : key_name : %s" % self.iterable[key_name]
+                    self.print_verbose(msg, "info")
                     return next(self.iterable[key_name])
                 except StopIteration:
                     raise StopIteration("There are no more iterables")

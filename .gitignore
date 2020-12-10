@@ -3,3 +3,5 @@
 **/dist
 **/build
 **/nld_*
+nld.egg-info/*
+*pycache*
