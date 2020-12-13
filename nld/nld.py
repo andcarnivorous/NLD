@@ -52,7 +52,7 @@ class NLD(object):
         self.no_input = False
         self.df = None
 
-    def print_verbose(self, message, level):
+    def _print_verbose(self, message, level):
         if self.verbose:
             print(message)
         if level == "info":
@@ -111,7 +111,7 @@ class NLD(object):
                     if category is not None and "class" not in self.df.columns:
                         self.df["class"] = None
                     msg = "Build DF : Created column: %s" % column
-                    self.print_verbose(msg, "info")
+                    self._print_verbose(msg, "info")
                 result = func(_input) if _input else func()
                 new_row = self.df[column].count()
                 if not isinstance(column, pd.Series):
@@ -131,7 +131,7 @@ class NLD(object):
                     if category is not None and "class" not in self.df.columns:
                         self.df["class"] = None
                     msg = "Build DF : Created column: %s" % column
-                    self.print_verbose(self.verbose, msg)
+                    self._print_verbose(self.verbose, msg)
                 result = func(_input) if _input else func()
                 self.df[column] = result
                 return result
@@ -192,7 +192,7 @@ class NLD(object):
                 result = func(_input) if _input else func()
                 if isinstance(result, list):
                     msg = "Freq Dist : Getting frequencies..."
-                    self.print_verbose(msg, "info")
+                    self._print_verbose(msg, "info")
                     return FreqDist(result).most_common(number)
                 else:
                     raise TypeError("The input to freq_dist must be of type list")
@@ -235,11 +235,11 @@ class NLD(object):
                 result = func(_input) if _input else func()
                 if isinstance(result, str):
                     msg = "POS Tagger : Input to pos tagger is of type string."
-                    self.print_verbose(msg, "info")
+                    self._print_verbose(msg, "info")
                     return list(pos_tag(result.split()))
                 elif isinstance(result, list):
                     msg = "POS Tagger : Input to pos tagger is of type list."
-                    self.print_verbose(msg, "info")
+                    self._print_verbose(msg, "info")
                     return list(pos_tag(result))
                 else:
                     raise TypeError("pos_tagger decorator only accepts string or list output, output received is %s" % type(result))
@@ -318,7 +318,7 @@ class NLD(object):
                 if isinstance(result, list):
                     if len(result) > 0 and isinstance(result[0], tuple):
                         msg = 'Lemmatize : input is tuple'
-                        self.print_verbose(msg, "info")
+                        self._print_verbose(msg, "info")
                         for i in range(len(result)):
                             result[i] = list(result[i])
                             result[i][0] = lemmatizer.lemmatize(result[i][0])
@@ -435,7 +435,7 @@ class NLD(object):
                 import re
                 result = func(*args, **kwargs)
                 msg = "Substitue : patterns: %s" % patterns
-                self.print_verbose(msg, "info")
+                self._print_verbose(msg, "info")
                 if isinstance(result, str):
                     for pattern in patterns:
                         old_word, new_word = pattern
@@ -482,7 +482,7 @@ class NLD(object):
                     result = word_tokenize(result)
                     if punct:
                         msg = "word_tokenize: remove punctuation"
-                        self.print_verbose(msg, "info")
+                        self._print_verbose(msg, "info")
                         import string
                         result = [word for word in result if word not in set(string.punctuation)]
                     return result
@@ -513,7 +513,7 @@ class NLD(object):
                 timing = time() - t0
                 self.process_time = timing
                 msg = "Timeit : Preprocessing took %.2f seconds" % timing
-                self.print_verbose(msg, "info")
+                self._print_verbose(msg, "info")
                 if self.store_all_process_times:
                     self.all_process_times[func.__name__] = self.process_time
                 return result
@@ -544,7 +544,7 @@ class NLD(object):
                     self.iterable[key_name] = (item for item in result)
                 try:
                     msg = "Iterable : key_name : %s" % self.iterable[key_name]
-                    self.print_verbose(msg, "info")
+                    self._print_verbose(msg, "info")
                     return next(self.iterable[key_name])
                 except StopIteration:
                     raise StopIteration("There are no more iterables")
